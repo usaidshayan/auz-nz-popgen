@@ -1,0 +1,20 @@
+name: ch2_zarr
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  - bwa=0.7.19
+  - samtools=1.24
+  - bcftools=1.24
+  - htslib=1.24
+  - pip
+  - pip:
+      - dask==2026.8.0
+      - numcodecs==0.15.1
+      - numpy==2.5.4
+      - openpyxl==3.1.5
+      - pandas==3.0.6
+      - pyyaml==6.0.3
+      - scikit-allel==1.3.13
+      - zarr==2.18.7

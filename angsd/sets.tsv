@@ -1,0 +1,6 @@
+hilli_on_hilli	01_hilli_masked	lists/hilli.txt	hilli_on_hilli
+hilli_on_stygia	03_stygia_masked	lists/hilli.txt	all_on_stygia
+stygia_on_stygia	03_stygia_masked	lists/stygia.txt	stygia_on_stygia
+stygia_on_hilli	01_hilli_masked	lists/stygia.txt	all_on_hilli
+all_on_hilli	01_hilli_masked	lists/all.txt	all_on_hilli
+all_on_stygia	03_stygia_masked	lists/all.txt	all_on_stygia
