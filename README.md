@@ -41,6 +41,7 @@ Raw reads, bams, vcfs, zarr stores, genotype likelihoods and results are not in 
 | 5 | `05_concat.sl` | join chunks into one all-sites vcf per set |
 | 6 | `06_zarr.sl` | vcf to zarr (scikit-allel), checked against the vcf |
 | 7 | `07_qc.sl` | per-sample and per-site depth, missingness, heterozygosity |
+| 8 | `08_clean_bam.sl` | own-assembly bams for the final run: proper pairs, mapq >= 20, no dups, >= 50 bp aligned, overlapping mates clipped (bamUtil clipOverlap) |
 
 ```
 bash run_align.sh test     # one sample on both assemblies
@@ -73,6 +74,34 @@ Most samples are at ~1-4x effective depth, too low for reliable heterozygous cal
 
 The hybrid analysis follows Croft et al. 2024 (*Ecology and Evolution*): combined pca, admixture at k 2-5 and NewHybrids on 200 loci x 10 replicates. Here each step runs on genotype likelihoods instead of hard calls.
 
+## Final run (`final/`)
+
+Each species on its own assembly. *C. hilli* is run with and without the Mt Keira flies (`hilli`, `hilli_noMKA`), *C. stygia* with all 18. Every analysis below runs on all three sets.
+
+| stage | what | tools |
+|---|---|---|
+| f00 | sample lists, sets, saf groups, fst pairs | bash |
+| f01 | depth pilot on 5 random 10 mb chunks, max depth = 99th percentile | angsd |
+| f02-f03 | genotype likelihoods (reference allele as major, `-doMajorMinor 4`), beagle + bcf | angsd, bcftools |
+| f04 | pca on all snps, 3 random 10% subsets, 3 x 18k snps (Croft gbs scale), snps outside repeats | pcangsd |
+| f05 | admixture k 1-6, 10 seeds, evalAdmix on the best run | ngsadmix, evalAdmix |
+| f06 | relatedness | ngsRelate |
+| f07 | per-fly heterozygosity, native depth and downsampled to 1.5x | angsd, realSFS |
+| f08-f09 | per-population saf over all sites (no snp or maf filter), folded sfs, pi, theta, Tajima's D in 50 kb windows | angsd, realSFS, thetaStat |
+| f10 | fst for every pair of populations within a species and Australia vs New Zealand, 50 kb windows | realSFS |
+| f11 | two-population models for Australia vs New Zealand on the folded 2d sfs | dadi |
+| f12 | g123 scan on angsd posterior genotype calls | python |
+| f13-f14 | ld decay and per-fly inbreeding | ngsLD, ngsF |
+| f15 | kinship from genotype likelihoods | kestrel |
+| f16-f17 | tables and figures, written to `results/` | python, matplotlib |
+
+Confidence intervals on pi, theta, Tajima's D and fst come from a weighted block jackknife over 1 mb blocks.
+
+```
+bash final/scripts/f00_lists.sh
+bash final/status.sh
+```
+
 ## Software
 
 Run on NeSI (Slurm). The environments are in `envs/`:
@@ -80,7 +109,7 @@ Run on NeSI (Slurm). The environments are in `envs/`:
 - `ch2_zarr`: bwa 0.7.19, samtools / bcftools 1.24, scikit-allel, zarr
 - `ch2_gl`: pcangsd 1.36.4, ngsrelate 2.3.1, numpy, pandas, matplotlib
 
-NeSI modules: angsd 0.935 (with ngsadmix and realsfs), fastp 0.23.4, Kraken2 2.1.3, BLAST 2.17.0, SAMtools 1.23.1. evalAdmix and NewHybrids are compiled from source.
+NeSI modules: angsd 0.935 (with ngsadmix and realsfs), bamUtil 1.0.15, dadi 2.3.0, fastp 0.23.4, Kraken2 2.1.3, BLAST 2.17.0, SAMtools 1.23.1. evalAdmix, NewHybrids, ngsLD and ngsF are compiled from source, kestrel is installed from PyPI (`kestrel-popgen`).
 
 ```
 conda env create -f envs/ch2_zarr.yaml
